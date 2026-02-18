@@ -51,7 +51,7 @@ def play_random(board):
     
     return possible_moves[random.randrange(len(possible_moves))]
 def main():
-    random.seed(datetime.now())
+    random.seed(datetime.now().timestamp())
     print("\n== Tic Tac Toe ==")
     # Create an empty board
     board = [ 
