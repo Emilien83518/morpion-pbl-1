@@ -6,16 +6,22 @@
 #def player: determines whose turn it is in any given game state (either max or min)
 #def action: gives all the possible actions we can take in that state  
 #def results: tells what the new state of the game will be after the action 
-board=[["X","X","X"],["O","O",""],["O","X","O"]]
+board=[['X','X','O'],
+       ['','O',''],
+       ['O','X','O']]
 def terminal(board):
-    for line in board:
-        values=[board[i][j] for i,j in line]
-        if values=["X","X","X"]:
-            return True 
-    elif values=["O","O","O"]:
-        return True 
-    for row in board:
-        if '' in row:
+    for r in board:
+        if '' in r: 
             return False 
+    for row in board:
+        if row[0]==row[1]==row[2] and row[0]!='':
+            return True 
+    for col in range(3):
+        if board[0][col]==board[1][col]==board[2][col] and board[0][col]!='':
+            return True     
+    if board[0][0]==board[1][1]==board[2][2] and board[0][0]!='':
+            return True    
+    if board[0][2]==board[1][1]==board[2][0] and board[0][2]!='':
+            return True 
     return True
- 
+print(terminal(board))
