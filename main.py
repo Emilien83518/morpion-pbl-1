@@ -6,9 +6,7 @@
 #def player: determines whose turn it is in any given game state (either max or min)
 #def action: gives all the possible actions we can take in that state  
 #def results: tells what the new state of the game will be after the action 
-board=[['X','X',''],
-       ['O','O','O'],
-       ['O','X','O']]
+
 def terminal(board):
     for row in board:
         if row[0]==row[1]==row[2] and row[0]!='':
@@ -24,5 +22,9 @@ def terminal(board):
         if '' in item:
             return False
     return True
-                
-print(terminal(board))
+def value(board):
+    if board[0][0]==board[0][1]==board[0][2]=="X" or board[1][0]==board[1][1]==board[1][2]=="X" or board[2][0]==board[2][1]==board[2][2]=="X" or board[0][0]==board[1][0]==board[2][0]=="X" or board[0][1]==board[1][1]==board[2][1]=="X" or board[0][2]==board[1][2]==board[2][2]=="X" or board[0][0]==board[1][1]==board[2][2]=="X" or board[0][2]==board[1][1]==board[2][0]=="X":
+        return 1 
+    elif board[0][0]==board[0][1]==board[0][2]=="O" or board[1][0]==board[1][1]==board[1][2]=="O" or board[2][0]==board[2][1]==board[2][2]=="O" or board[0][0]==board[1][0]==board[2][0]=="O" or board[0][1]==board[1][1]==board[2][1]=="O" or board[0][2]==board[1][2]==board[2][2]=="O" or board[0][0]==board[1][1]==board[2][2]=="O" or board[0][2]==board[1][1]==board[2][0]=="O":
+        return -1
+    return 0
