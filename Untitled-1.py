@@ -94,6 +94,3 @@ while Me==0 and Ai==0:
 
 def thomaspucamere():
     print("(-_-)")
-
-
-
