@@ -1,91 +1,111 @@
-import random
-from datetime import datetime
-def print_board(board):
-    print("\n    1   2   3 \n")
-    print("1   " + board[0][0] + " | " + board[0][1] + " | " + board[0][2])
-    print("   ---+---+---")
-    print("2   " + board[1][0] + " | " + board[1][1] + " | " + board[1][2])
-    print("   ---+---+---")
-    print("3   " + board[2][0] + " | " + board[2][1] + " | " + board[2][2] + "\n")
-def check_row(board, row):
-    return (board[row][0] == board[row][1] and board[row][1] == board[row][2] and board[row][0] != " ")
-def check_column(board, col):
-    return (board[0][col] == board[1][col] and board[1][col] == board[2][col] and board[0][col] != " ")
-def check_diagonals(board):
-    return (board[0][0] == board[1][1] and board[1][1] == board[2][2] and board[0][0] != " ") or\
-            (board[2][0] == board[1][1] and board[1][1] == board[0][2] and board[2][0] != " ")
-def check_winner(board):
-    for i in range(3):
-        if check_row(board, i):
-            return True
-        if check_column(board, i):
-            return True
-    if check_diagonals(board):
-        return True
-    return False
-def is_board_full(board):
-    for item in board:
-        if " " in item:
-            return False
-    return True
-def play(board):
-    while True:
-        row = input("Enter row number: ")
-        while not row.isdigit() or int(row) < 1 or int(row) > 3:
-            row = input("Enter row number between 1-3: ")
-        row = int(row)
-        col = input("Enter column number: ")
-        while not col.isdigit() or int(col) < 1 or int(col) > 3:
-            col = input("Enter column number between 1-3: ")
-        col = int(col)
-        if board[row-1][col-1] != " ":
-            print("Pick an empty box!")
-        else:
-            return (row-1, col-1)
-def play_random(board):
-    possible_moves = []
-    for row in range(len(board)):
-        for col in range(len(board[0])):
-            if board[row][col] == " ":
-                possible_moves.append((row, col))
-    
-    return possible_moves[random.randrange(len(possible_moves))]
-def main():
-    random.seed(datetime.now().timestamp())
-    print("\n== Tic Tac Toe ==")
-    # Create an empty board
-    board = [ 
-        [" ", " ", " "],
-        [" ", " ", " "],
-        [" ", " ", " "]
-    ]
-    # Create 2 players
-    players = ["X", "O"]
-    # Player X plays first
-    turn = 0
-    while not is_board_full(board):
-        print_board(board)
-        if turn == 0:
-            # User input
-            print("You play!")
-            row, col = play(board)
-            board[row][col] = players[turn]
-            
-        else:
-            # Compuuter plays
-            print("Computer plays!")
-            row, col = play_random(board)
-            board[row][col] = players[turn]
-        # Check if the player won
-        if check_winner(board):
-            print_board(board)
-            print("You won!" if turn == 0 else "Computer won!")
-            break
+import math
+
+# Constantes pour les scores selon le sujet [cite: 29]
+IA_GAGNE = 1000
+JOUEUR_GAGNE = -1000
+EGALITE = 0
+
+class MorpionIA:
+    def __init__(self):
+        # Le plateau est une liste de 9 cases vides
+        self.plateau = [" " for _ in range(9)]
         
-        # Select the next player
-        turn = 1 - turn
+    def afficher_plateau(self):
+        """Affiche le plateau de jeu de manière lisible."""
+        for i in range(0, 9, 3):
+            print(f" {self.plateau[i]} | {self.plateau[i+1]} | {self.plateau[i+2]} ")
+            if i < 6: print("-----------")
+
+    def verifier_victoire(self, symbole):
+        """Vérifie si le symbole (X ou O) a gagné[cite: 68]."""
+        victoires = [(0,1,2), (3,4,5), (6,7,8), (0,3,6), (1,4,7), (2,5,8), (0,4,8), (2,4,6)]
+        return any(all(self.plateau[i] == symbole for i in combo) for combo in victoires)
+
+    def evaluer_plateau(self):
+        """Attribue un score à l'état actuel[cite: 66, 67]."""
+        if self.verifier_victoire("O"): return IA_GAGNE
+        if self.verifier_victoire("X"): return JOUEUR_GAGNE
+        return EGALITE
+
+    def coups_possibles(self):
+        """Retourne la liste des index vides[cite: 130]."""
+        return [i for i, x in enumerate(self.plateau) if x == " "]
+
+    def minimax(self, profondeur, est_max):
+        """
+        L'algorithme récursif qui explore l'arbre des possibilités[cite: 46].
+        profondeur: nombre de coups restants à explorer[cite: 61].
+        est_max: True si c'est au tour de l'IA (Max), False pour l'humain (Min).
+        """
+        score = self.evaluer_plateau()
+
+        # Conditions d'arrêt : victoire, défaite ou plus de place [cite: 28, 45]
+        if score == IA_GAGNE or score == JOUEUR_GAGNE:
+            return score
+        if not self.coups_possibles() or profondeur == 0:
+            return EGALITE
+
+        if est_max:
+            # Tour de l'IA : on veut le score le plus haut possible [cite: 47]
+            meilleur_score = -math.inf
+            for coup in self.coups_possibles():
+                self.plateau[coup] = "O"
+                score = self.minimax(profondeur - 1, False)
+                self.plateau[coup] = " " # Backtracking
+                meilleur_score = max(score, meilleur_score)
+            return meilleur_score
+        else:
+            # Tour de l'humain : l'IA suppose qu'il jouera le mieux (score min) [cite: 48]
+            meilleur_score = math.inf
+            for coup in self.coups_possibles():
+                self.plateau[coup] = "X"
+                score = self.minimax(profondeur - 1, True)
+                self.plateau[coup] = " " # Backtracking
+                meilleur_score = min(score, meilleur_score)
+            return meilleur_score
+
+    def meilleur_coup(self, difficulte):
+        """Calcule et affiche le meilleur coup pour l'IA[cite: 49, 52]."""
+        meilleur_val = -math.inf
+        coup_choisi = -1
+        
+        print("\n--- Analyse de l'IA ---")
+        for coup in self.coups_possibles():
+            self.plateau[coup] = "O"
+            # La difficulté définit la profondeur de recherche [cite: 61]
+            valeur_coup = self.minimax(difficulte, False)
+            self.plateau[coup] = " "
+            
+            print(f"Coup {coup} : Score = {valeur_coup}") # Consigne: afficher les scores [cite: 52]
+            
+            if valeur_coup > meilleur_val:
+                meilleur_val = valeur_coup
+                coup_choisi = coup
+        
+        return coup_choisi
+
+# --- Lancement du jeu ---
+jeu = MorpionIA()
+# Niveau de difficulté (profondeur de recherche) [cite: 52, 60]
+# 1 = Facile, 9 = Imbattable
+difficulte = 9 
+
+print("Bienvenue au Morpion IA !")
+while jeu.coups_possibles() and not (jeu.verifier_victoire("X") or jeu.verifier_victoire("O")):
+    jeu.afficher_plateau()
     
+    # Tour de l'humain
+    choix = int(input("\nVotre coup (0-8) : "))
+    if jeu.plateau[choix] == " ":
+        jeu.plateau[choix] = "X"
+        
+        # Tour de l'IA
+        if jeu.coups_possibles() and not jeu.verifier_victoire("X"):
+            print("\nL'IA réfléchit...")
+            ia_coup = jeu.meilleur_coup(difficulte)
+            jeu.plateau[ia_coup] = "O"
     else:
-        print_board(board)
-        print("It's a tie!")
-main()
+        print("Case déjà prise !")
+
+jeu.afficher_plateau()
+print("\nFin de la partie !")
