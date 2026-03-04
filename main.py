@@ -1,111 +1,224 @@
-import math
+import sys
+import random  # Added for Easy mode
+from PyQt5.QtWidgets import (QWidget, QLabel, QVBoxLayout, QGridLayout, 
+                             QPushButton, QMessageBox, QApplication, QComboBox, QHBoxLayout)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 
-# Constantes pour les scores selon le sujet [cite: 29]
-IA_GAGNE = 1000
-JOUEUR_GAGNE = -1000
-EGALITE = 0
-
-class MorpionIA:
+class QuizView(QWidget):
     def __init__(self):
-        # Le plateau est une liste de 9 cases vides
-        self.plateau = [" " for _ in range(9)]
+        super().__init__()
+        self.setWindowTitle("Morpion AI")
+        self.setFixedSize(600, 850) # Adjusted height
+        self.setStyleSheet("background-color: #2c3e50;") 
+
+        # Game State Variables
+        self.board = [["" for _ in range(3)] for _ in range(3)]
+        self.current_player = "X"
+        self.loss_streak = 0
+        self.game_mode = "Player vs AI"
+        self.difficulty = "Normal" # Default Difficulty
+
+        # UI Elements: Top Menu (Mode and Difficulty)
+        self.menu_layout = QVBoxLayout()
         
-    def afficher_plateau(self):
-        """Affiche le plateau de jeu de manière lisible."""
-        for i in range(0, 9, 3):
-            print(f" {self.plateau[i]} | {self.plateau[i+1]} | {self.plateau[i+2]} ")
-            if i < 6: print("-----------")
+        # Mode Row
+        mode_hbox = QHBoxLayout()
+        self.mode_selector = QComboBox()
+        self.mode_selector.addItems(["Player vs AI", "Player vs Player"])
+        self.mode_selector.currentTextChanged.connect(self.change_mode)
+        mode_hbox.addWidget(QLabel("<font color='white'>Mode:</font>"))
+        mode_hbox.addWidget(self.mode_selector)
+        
+        # Difficulty Row
+        self.diff_hbox = QHBoxLayout()
+        self.diff_selector = QComboBox()
+        self.diff_selector.addItems(["Hard", "Easy"])
+        self.diff_selector.currentTextChanged.connect(self.change_difficulty)
+        self.diff_label = QLabel("<font color='white'>Difficulty:</font>")
+        self.diff_hbox.addWidget(self.diff_label)
+        self.diff_hbox.addWidget(self.diff_selector)
 
-    def verifier_victoire(self, symbole):
-        """Vérifie si le symbole (X ou O) a gagné[cite: 68]."""
-        victoires = [(0,1,2), (3,4,5), (6,7,8), (0,3,6), (1,4,7), (2,5,8), (0,4,8), (2,4,6)]
-        return any(all(self.plateau[i] == symbole for i in combo) for combo in victoires)
-
-    def evaluer_plateau(self):
-        """Attribue un score à l'état actuel[cite: 66, 67]."""
-        if self.verifier_victoire("O"): return IA_GAGNE
-        if self.verifier_victoire("X"): return JOUEUR_GAGNE
-        return EGALITE
-
-    def coups_possibles(self):
-        """Retourne la liste des index vides[cite: 130]."""
-        return [i for i, x in enumerate(self.plateau) if x == " "]
-
-    def minimax(self, profondeur, est_max):
+        # Styling for ComboBoxes
+        combo_style = """
+            QComboBox { 
+                background-color: #34495e; color: white; padding: 5px; 
+                font-size: 16px; border-radius: 5px; min-width: 150px;
+            }
         """
-        L'algorithme récursif qui explore l'arbre des possibilités[cite: 46].
-        profondeur: nombre de coups restants à explorer[cite: 61].
-        est_max: True si c'est au tour de l'IA (Max), False pour l'humain (Min).
-        """
-        score = self.evaluer_plateau()
+        self.mode_selector.setStyleSheet(combo_style)
+        self.diff_selector.setStyleSheet(combo_style)
 
-        # Conditions d'arrêt : victoire, défaite ou plus de place [cite: 28, 45]
-        if score == IA_GAGNE or score == JOUEUR_GAGNE:
-            return score
-        if not self.coups_possibles() or profondeur == 0:
-            return EGALITE
+        self.menu_layout.addLayout(mode_hbox)
+        self.menu_layout.addLayout(self.diff_hbox)
 
-        if est_max:
-            # Tour de l'IA : on veut le score le plus haut possible [cite: 47]
-            meilleur_score = -math.inf
-            for coup in self.coups_possibles():
-                self.plateau[coup] = "O"
-                score = self.minimax(profondeur - 1, False)
-                self.plateau[coup] = " " # Backtracking
-                meilleur_score = max(score, meilleur_score)
-            return meilleur_score
+        # UI Elements: Status and Streak
+        self.status_label = QLabel("YOUR TURN (X)", self)
+        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setStyleSheet("color: white; font-size: 24px; font-weight: bold; margin: 10px;")
+
+        self.streak_label = QLabel("Loss Streak vs AI: 0", self)
+        self.streak_label.setAlignment(Qt.AlignCenter)
+        self.streak_label.setStyleSheet("color: #e74c3c; font-size: 18px; font-weight: bold; margin-bottom: 10px;")
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(self.menu_layout)
+        main_layout.addWidget(self.status_label)
+
+        board_layout = QGridLayout()
+        self.buttons = []
+        for row in range(3):
+            button_row = []
+            for col in range(3):
+                button = QPushButton("")
+                button.setFixedSize(150, 150)
+                button.setStyleSheet("""
+                    QPushButton {
+                        background-color: #34495e; 
+                        color: white; 
+                        font-size: 60px; 
+                        border-radius: 10px;
+                    }
+                    QPushButton:hover {
+                        background-color: #4e6a85;
+                    }
+                """)
+                button.clicked.connect(lambda chk, r=row, c=col: self.handle_click(r, c))
+                board_layout.addWidget(button, row, col)
+                button_row.append(button)
+            self.buttons.append(button_row)
+
+        main_layout.addLayout(board_layout)
+        main_layout.addWidget(self.streak_label)
+        self.setLayout(main_layout)
+
+    def change_mode(self, mode):
+        self.game_mode = mode
+        # Hide difficulty if PvP
+        is_ai = mode == "Player vs AI"
+        self.diff_selector.setVisible(is_ai)
+        self.diff_label.setVisible(is_ai)
+        self.reset_game()
+
+    def change_difficulty(self, diff):
+        self.difficulty = diff
+        self.reset_game()
+
+    def handle_click(self, r, c):
+        if self.board[r][c] == "":
+            if self.game_mode == "Player vs AI":
+                if self.make_move(r, c, "X"):
+                    return 
+                
+                self.status_label.setText("AI IS THINKING...")
+                self.status_label.repaint() 
+                self.ai_move()
+            else:
+                self.make_move(r, c, self.current_player)
+                self.current_player = "O" if self.current_player == "X" else "X"
+                if not self.is_draw() and not self.check_winner("X") and not self.check_winner("O"):
+                    self.status_label.setText(f"PLAYER {self.current_player} TURN")
+
+    def ai_move(self):
+        move = None
+        
+        if self.difficulty == "Easy":
+            # --- EASY MODE: RANDOM MOVE ---
+            available_moves = [(r, c) for r in range(3) for c in range(3) if self.board[r][c] == ""]
+            if available_moves:
+                move = random.choice(available_moves)
         else:
-            # Tour de l'humain : l'IA suppose qu'il jouera le mieux (score min) [cite: 48]
-            meilleur_score = math.inf
-            for coup in self.coups_possibles():
-                self.plateau[coup] = "X"
-                score = self.minimax(profondeur - 1, True)
-                self.plateau[coup] = " " # Backtracking
-                meilleur_score = min(score, meilleur_score)
-            return meilleur_score
-
-    def meilleur_coup(self, difficulte):
-        """Calcule et affiche le meilleur coup pour l'IA[cite: 49, 52]."""
-        meilleur_val = -math.inf
-        coup_choisi = -1
+            # --- NORMAL MODE: MINIMAX ---
+            best_val = -float('inf')
+            for r in range(3):
+                for c in range(3):
+                    if self.board[r][c] == "":
+                        self.board[r][c] = "O"
+                        score = self.minimax(self.board, False)
+                        self.board[r][c] = ""
+                        if score > best_val:
+                            best_val = score
+                            move = (r, c)
         
-        print("\n--- Analyse de l'IA ---")
-        for coup in self.coups_possibles():
-            self.plateau[coup] = "O"
-            # La difficulté définit la profondeur de recherche [cite: 61]
-            valeur_coup = self.minimax(difficulte, False)
-            self.plateau[coup] = " "
+        if move:
+            self.make_move(move[0], move[1], "O")
+
+    # --- MINIMAX LOGIC ---
+    def minimax(self, state, is_maximizing):
+        if self.Terminal(state, "O"): return 10
+        if self.Terminal(state, "X"): return -10
+        if not any("" in row for row in state): return 0
+
+        if is_maximizing:
+            best = -float('inf')
+            for r in range(3):
+                for c in range(3):
+                    if state[r][c] == "":
+                        state[r][c] = "O"
+                        best = max(best, self.minimax(state, False))
+                        state[r][c] = ""
+            return best
+        else:
+            best = float('inf')
+            for r in range(3):
+                for c in range(3):
+                    if state[r][c] == "":
+                        state[r][c] = "X"
+                        best = min(best, self.minimax(state, True))
+                        state[r][c] = ""
+            return best
+
+    def make_move(self, row, col, player):
+        self.board[row][col] = player
+        self.buttons[row][col].setText(player)
+        self.buttons[row][col].setEnabled(False)
+        
+        color = "#e74c3c" if player == "X" else "#f1c40f"
+        self.buttons[row][col].setStyleSheet(f"background-color: #34495e; color: {color}; font-size: 60px; border-radius: 10px;")
+
+        if self.check_winner(player):
+            if self.game_mode == "Player vs AI":
+                if player == "O":
+                    self.loss_streak += 1
+                else:
+                    self.loss_streak = 0
+                self.streak_label.setText(f"Loss Streak vs AI: {self.loss_streak}")
             
-            print(f"Coup {coup} : Score = {valeur_coup}") # Consigne: afficher les scores [cite: 52]
-            
-            if valeur_coup > meilleur_val:
-                meilleur_val = valeur_coup
-                coup_choisi = coup
+            self.end_game(f"Player {player} wins!")
+            return True
+
+        if self.is_draw():
+            self.end_game("It's a Draw!")
+            return True
         
-        return coup_choisi
+        self.status_label.setText("YOUR TURN (X)" if player == "O" else "AI'S TURN (O)")
+        return False
 
-# --- Lancement du jeu ---
-jeu = MorpionIA()
-# Niveau de difficulté (profondeur de recherche) [cite: 52, 60]
-# 1 = Facile, 9 = Imbattable
-difficulte = 9 
+    def Terminal(self, b, p):
+        wins = [[b[0][0], b[0][1], b[0][2]], [b[1][0], b[1][1], b[1][2]], [b[2][0], b[2][1], b[2][2]],
+                [b[0][0], b[1][0], b[2][0]], [b[0][1], b[1][1], b[2][1]], [b[0][2], b[1][2], b[2][2]],
+                [b[0][0], b[1][1], b[2][2]], [b[0][2], b[1][1], b[2][0]]]
+        return [p, p, p] in wins
 
-print("Bienvenue au Morpion IA !")
-while jeu.coups_possibles() and not (jeu.verifier_victoire("X") or jeu.verifier_victoire("O")):
-    jeu.afficher_plateau()
-    
-    # Tour de l'humain
-    choix = int(input("\nVotre coup (0-8) : "))
-    if jeu.plateau[choix] == " ":
-        jeu.plateau[choix] = "X"
-        
-        # Tour de l'IA
-        if jeu.coups_possibles() and not jeu.verifier_victoire("X"):
-            print("\nL'IA réfléchit...")
-            ia_coup = jeu.meilleur_coup(difficulte)
-            jeu.plateau[ia_coup] = "O"
-    else:
-        print("Case déjà prise !")
+    def check_winner(self, p): return self.Terminal(self.board, p)
+    def is_draw(self): return not any("" in row for row in self.board)
 
-jeu.afficher_plateau()
-print("\nFin de la partie !")
+    def end_game(self, message):
+        QMessageBox.information(self, "Game Over", message)
+        self.reset_game()
+
+    def reset_game(self):
+        self.board = [["" for _ in range(3)] for _ in range(3)]
+        self.current_player = "X"
+        for row in self.buttons:
+            for btn in row:
+                btn.setText("")
+                btn.setEnabled(True)
+                btn.setStyleSheet("background-color: #34495e; color: white; font-size: 60px; border-radius: 10px;")
+        self.status_label.setText("YOUR TURN (X)" if self.game_mode == "Player vs AI" else "PLAYER X TURN")
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = QuizView()
+    window.show()
+    sys.exit(app.exec_())
