@@ -16,6 +16,7 @@ class QuizView(QWidget):
         self.current_player = "X"
         self.loss_streak = 0
         self.game_mode = "Player vs AI" # Default mode
+
         # UI Elements: Top Menu
         self.menu_layout = QHBoxLayout()
         self.mode_selector = QComboBox()
@@ -118,7 +119,7 @@ class QuizView(QWidget):
         self.status_label.setText("YOUR TURN (X)" if player == "O" else "AI'S TURN (O)")
         return False
 
-    # --- MINIMAX LOGIC ---
+    # --- MINIMAX LOGIC (UNCHANGED) ---
     def ai_move(self):
         best_val = -float('inf')
         move = None
