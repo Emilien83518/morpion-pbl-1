@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt
 class QuizView(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Morpion AI")
+        self.setWindowTitle("IMPOSSIBLE TIC TAC TOE GAME")
         self.setFixedSize(600, 850)
         self.setStyleSheet("background-color: #2c3e50;") 
 
@@ -18,7 +18,7 @@ class QuizView(QWidget):
         self.score_x = 0
         self.score_o = 0
         self.game_mode = "Player vs AI"
-        self.difficulty = "Normal"
+        self.difficulty = "Hard"
 
         # --- MENU TOP ---
         self.menu_layout = QVBoxLayout()
@@ -34,7 +34,7 @@ class QuizView(QWidget):
         # Ligne Difficulté (AI)
         self.diff_hbox = QHBoxLayout()
         self.diff_selector = QComboBox()
-        self.diff_selector.addItems(["Normal", "Easy"])
+        self.diff_selector.addItems(["Hard", "Easy"])
         self.diff_selector.currentTextChanged.connect(self.change_difficulty)
         self.diff_label = QLabel("<font color='white'>Difficulté:</font>")
         self.diff_hbox.addWidget(self.diff_label)
@@ -66,11 +66,11 @@ class QuizView(QWidget):
         self.menu_layout.addWidget(self.score_widget)
 
         # Statut et Streak
-        self.status_label = QLabel("À VOUS DE JOUER (X)", self)
+        self.status_label = QLabel("YOU PLAY -> X", self)
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setStyleSheet("color: white; font-size: 24px; font-weight: bold; margin: 10px;")
 
-        self.streak_label = QLabel("Série de défaites vs AI: 0", self)
+        self.streak_label = QLabel("Streak Loss vs AI: 0", self)
         self.streak_label.setAlignment(Qt.AlignCenter)
         self.streak_label.setStyleSheet("color: #e74c3c; font-size: 18px; font-weight: bold; margin-bottom: 10px;")
 
@@ -124,14 +124,14 @@ class QuizView(QWidget):
         if self.board[r][c] == "":
             if self.game_mode == "Player vs AI":
                 if self.make_move(r, c, "X"): return 
-                self.status_label.setText("L'IA RÉFLÉCHIT...")
+                self.status_label.setText("AI IS PLAYING.")
                 self.status_label.repaint() 
                 self.ai_move()
             else:
                 current = self.current_player
                 if self.make_move(r, c, current): return
                 self.current_player = "O" if current == "X" else "X"
-                self.status_label.setText(f"TOUR DU JOUEUR {self.current_player}")
+                self.status_label.setText(f"YOU PLAY -> {self.current_player}")
 
     def ai_move(self):
         move = None
@@ -185,17 +185,17 @@ class QuizView(QWidget):
             if self.game_mode == "Player vs AI":
                 if player == "O": self.loss_streak += 1
                 else: self.loss_streak = 0
-                self.streak_label.setText(f"Série de défaites vs AI: {self.loss_streak}")
+                self.streak_label.setText(f"Loss Streak vs AI: {self.loss_streak}")
             else:
                 if player == "X": self.score_x += 1
                 else: self.score_o += 1
                 self.update_score_labels()
             
-            self.end_game(f"Le joueur {player} a gagné !")
+            self.end_game(f"Player {player} wins !")
             return True
 
         if self.is_draw():
-            self.end_game("Égalité !")
+            self.end_game("Draw !")
             return True
         return False
 
@@ -209,7 +209,7 @@ class QuizView(QWidget):
     def is_draw(self): return not any("" in row for row in self.board)
 
     def end_game(self, message):
-        QMessageBox.information(self, "Fin de partie", message)
+        QMessageBox.information(self, "Game Over", message)
         self.reset_game()
 
     def reset_game(self):
@@ -220,7 +220,7 @@ class QuizView(QWidget):
                 btn.setText("")
                 btn.setEnabled(True)
                 btn.setStyleSheet("background-color: #34495e; color: white; font-size: 60px; border-radius: 10px;")
-        self.status_label.setText("À VOUS DE JOUER (X)" if self.game_mode == "Player vs AI" else "TOUR DU JOUEUR X")
+        self.status_label.setText("YOU PLAY -> X" if self.game_mode == "Player vs AI" else "YOU PLAY -> X")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
